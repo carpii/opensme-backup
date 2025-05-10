@@ -1,4 +1,4 @@
-backup.sql
+*.sql
 sme.h2.db
 *.class
 

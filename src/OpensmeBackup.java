@@ -6,7 +6,7 @@ import java.sql.Statement;
 public class OpensmeBackup {
 	public static void main(String[] args) {
 		if (args.length < 1 || !(args[0].equals("import") || args[0].equals("export"))) {
-			System.err.println("Usage: java OpensmeBackup [import <sql-file> [db-file]] | [export [db-file]]");
+			System.err.println("Usage: java OpensmeBackup [import <sql-file> [db-file]] | [export [sql-file] [db-file]]");
 			System.exit(1);
 		}
 
@@ -15,7 +15,8 @@ public class OpensmeBackup {
 		String dbFilePath;
 
 		if (mode.equals("export")) {
-			dbFilePath = (args.length >= 2) ? args[1] : "./sme.h2.db";
+			sqlFile = (args.length >= 2) ? args[1] : "backup.sql";
+			dbFilePath = (args.length >= 3) ? args[2] : "./sme.h2.db";
 		} else {
 			if (args.length < 2) {
 				System.err.println("Error: import requires a SQL file.");
@@ -36,7 +37,7 @@ public class OpensmeBackup {
 			System.exit(1);
 		}
 
-		String basePath = dbFilePath.substring(0, dbFilePath.length() - 6); // strip ".h2.db"
+		String basePath = dbFilePath.substring(0, dbFilePath.length() - 6);
 		String dbUrl = "jdbc:h2:file:" + basePath;
 		String dbUser = "";
 		String dbPass = "";
@@ -67,13 +68,22 @@ public class OpensmeBackup {
 				}
 
 				System.out.println("Wiping database...");
-				stmt.execute("DROP ALL OBJECTS");
+				try {
+					stmt.execute("DROP ALL OBJECTS");
+				} catch (Exception e) {
+					System.err.println("Error while dropping objects: " + e.getMessage());
+					System.exit(1);
+				}
 
 				System.out.println("Importing from SQL file...");
-				stmt.execute("RUNSCRIPT FROM '" + sqlFile + "'");
-
-				System.out.println("Import complete.");
-				System.exit(0);
+				try {
+					stmt.execute("RUNSCRIPT FROM '" + sqlFile + "'");
+					System.out.println("SQL import completed successfully.");
+					System.exit(0);
+				} catch (Exception e) {
+					System.err.println("Error while importing SQL file: " + e.getMessage());
+					System.exit(1);
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
